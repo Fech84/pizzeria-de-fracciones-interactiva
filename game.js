@@ -3,9 +3,24 @@
 'use strict';
 const $ = (id) => document.getElementById(id);
 const STORAGE_KEY = 'franciscos_pizzeria_interactiva_v3';
+const AUDIO_SETTING_KEY = 'franciscos_pizzeria_audio_v1';
 const esc = (v) => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money = (n) => '$' + Number(n).toLocaleString('es-CO');
 const ranks = ['Aprendiz','Pizzero','Especialista','Maestro'];
+const SHORT_GOALS = [
+  'Representa fracciones seleccionando porciones de pizza.',
+  'Llena vasos y compara cantidades de bebida.',
+  'Calcula los ingredientes que necesitan varias pizzas.',
+  'Reparte cuentas y calcula propinas y descuentos.',
+  '¡Demuestra todo lo aprendido en el gran banquete!'
+];
+const GUIDE_MESSAGES = [
+  '¡Toca las porciones que pide el cliente! Tú puedes.',
+  '¡Sirvamos cada bebida con la medida correcta!',
+  '¡Prepara los ingredientes! Cuenta las partes de taza.',
+  '¡Hora de cobrar! Lee con calma cada recibo.',
+  '¡Llegó el reto VIP! ¡Vamos por la estrella final!'
+];
 
 const LEVELS = [
   {
@@ -115,7 +130,7 @@ const getNewState = (player='',mode='reto') => ({
   mistakes:0,hintsTask:0,successes:0,errors:0,hints:0,courseUses:0,cards:0,
   alarm:0,calculator:0,seconds:LEVELS[0].seconds,timeEnded:false,
   feedback:null,awaitingNext:false,courseIndex:0,courseTries:0,decor:'clasica',
-  completed:[],log:[],created:new Date().toISOString()
+  completed:[],log:[],cardsByOrder:true,created:new Date().toISOString()
 });
 
 function loadState(){
@@ -125,30 +140,59 @@ function loadState(){
        !Array.isArray(parsed.log) || !Array.isArray(parsed.completed) || !Array.isArray(parsed.selected))return null;
     if(!['play','landing','course','ending'].includes(parsed.page))return null;
     if(parsed.stage<5 && (!Number.isInteger(parsed.task) || parsed.task<0 || parsed.task>=(parsed.stage===4?VIP:LEVELS[parsed.stage]).tasks.length))return null;
+    // Compatibilidad con partidas de la versión anterior: ahora cada pedido entrega una tarjeta.
+    if(!parsed.cardsByOrder){parsed.cards=parsed.log.length;parsed.cardsByOrder=true;}
     return parsed;
   }catch(e){return null;}
 }
 let state = loadState();
-let soundOn=false,modalCallback=null,toastTimer=null;
+let soundOn=true,volumePct=75,modalCallback=null,toastTimer=null,audioContext=null;
+try{
+  const prefs=JSON.parse(localStorage.getItem(AUDIO_SETTING_KEY));
+  if(typeof prefs?.enabled==='boolean')soundOn=prefs.enabled;
+  if(Number.isFinite(prefs?.volume))volumePct=clamp(prefs.volume,0,100);
+}catch(e){}
 const save = () => {try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){/* Navegación privada: el juego sigue funcionando. */}};
+const saveAudio = () => {try{localStorage.setItem(AUDIO_SETTING_KEY,JSON.stringify({enabled:soundOn,volume:volumePct}));}catch(e){}};
 
 function showToast(message){
   $('toast').textContent=message;$('toast').classList.remove('hidden');
   if(toastTimer)clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>$('toast').classList.add('hidden'),3200);
 }
-function playNote(win=true){
-  if(!soundOn)return;
+function playSound(type='correct'){
+  if(!soundOn||volumePct<=0)return;
   try{
     const Context=window.AudioContext || window.webkitAudioContext;
     if(!Context)return;
-    const ctx=new Context(),osc=ctx.createOscillator(),gain=ctx.createGain();
-    osc.type='sine';osc.frequency.setValueAtTime(win?540:240,ctx.currentTime);
-    if(win)osc.frequency.exponentialRampToValueAtTime(810,ctx.currentTime+.16);
-    gain.gain.setValueAtTime(.055,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.24);
-    osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.25);
-    setTimeout(()=>ctx.close().catch(()=>{}),400);
-  }catch(e){/* El sonido es opcional. */}
+    audioContext ||= new Context();
+    if(audioContext.state==='suspended')audioContext.resume().catch(()=>{});
+    const patterns={
+      correct:[523.25,659.25],error:[247,196],hint:[440,554.37],
+      level:[523.25,659.25,783.99,1046.5],victory:[523.25,659.25,783.99,1046.5,987.77,1318.51]
+    };
+    const notes=patterns[type]||patterns.correct;
+    const duration=type==='victory'?.25:type==='level'?.23:.18;
+    const spacing=duration+.035;
+    const peak=(volumePct/100)*(type==='error'?.11:.21);
+    notes.forEach((hz,i)=>{
+      const start=audioContext.currentTime+i*spacing;
+      const osc=audioContext.createOscillator(),gain=audioContext.createGain();
+      osc.type=type==='error'?'sine':'triangle';osc.frequency.setValueAtTime(hz,start);
+      gain.gain.setValueAtTime(.001,start);
+      gain.gain.linearRampToValueAtTime(peak,start+.025);
+      gain.gain.exponentialRampToValueAtTime(.001,start+duration);
+      osc.connect(gain);gain.connect(audioContext.destination);
+      osc.start(start);osc.stop(start+duration+.03);
+    });
+  }catch(e){/* Los efectos son opcionales. */}
+}
+function playNote(win=true){playSound(win?'correct':'error');}
+function updateAudioUI(){
+  $('audio-btn').textContent=soundOn?'🔊 Sonido':'🔇 Silenciado';
+  $('audio-btn').setAttribute('aria-pressed',String(soundOn));
+  $('volume-slider').value=String(volumePct);
+  $('volume-readout').textContent=volumePct+'%';
 }
 function confetti(){
   if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
@@ -175,8 +219,18 @@ function showIntro(){
   const lvl=getLevel();
   showModal({emoji:lvl.icon,eyebrow:state.stage===4?'DESAFÍO INTEGRADOR':'COMIENZA UN NUEVO NIVEL',
     title:lvl.title,description:lvl.story,
-    details:'<p><b>🎓 Objetivo:</b> '+esc(lvl.competency)+'</p><p><b>🎮 Cómo juegas:</b> '+esc(lvl.resource)+'</p><p><b>🎁 Recompensa:</b> '+esc(lvl.reward)+'</p>',
+    details:'<p><b>🎯 Tu misión:</b> '+esc(SHORT_GOALS[state.stage])+'</p><p><b>🎁 Al superarla:</b> '+esc(lvl.reward)+'</p>',
     button:'¡Entrar a la cocina!',callback:()=>{render();}
+  });
+}
+function openLevelInfo(){
+  if(!state || state.page!=='play')return;
+  const lvl=getLevel(),names=['Integrante 1','Integrante 2','Integrante 3'],n=state.stage%3;
+  showModal({emoji:'📚',eyebrow:'INFORMACIÓN PARA ESTUDIANTES Y DOCENTES',
+    title:'Así aprendemos en '+lvl.short.toLowerCase(),description:'¡Pi-zzagirl te acompaña! Estos son los aprendizajes, herramientas y roles de la misión.',
+    details:'<p><b>🎓 Aprendizaje:</b> '+esc(lvl.competency)+'</p><p><b>🧩 Recurso:</b> '+esc(lvl.resource)+'</p>'+
+      '<p><b>👥 Roles para grupos de tres:</b><br>Chef: '+names[n]+' · Lector: '+names[(n+1)%3]+' · Verificador: '+names[(n+2)%3]+'. Los roles rotan al cambiar de nivel.</p>',
+    button:'¡Seguir jugando!'
   });
 }
 function render(){
@@ -218,20 +272,12 @@ function renderDashboard(){
     const done=i<state.stage,live=i===state.stage;
     return '<button type="button" disabled class="'+(done?'completed':live?'current':'')+'" aria-current="'+(live?'step':'false')+'">'+(done?'✓ ':live?'➤ ':'🔒 ')+l.icon+' '+esc(l.short)+'</button>';
   }).join('');
-  $('coach-name').textContent=lvl.guide;
-  $('competence-text').textContent=lvl.competency;
-  $('resource-text').textContent=lvl.resource;
-  $('coach-speech').textContent=state.stage===0?'¡Toca las porciones de la pizza! Cada parte que marcas cuenta en el numerador.':
-    state.stage===1?'¡Observa la capacidad! Llena el vaso con los controles y compara las cantidades.':
-    state.stage===2?'Lee la receta y ajusta las medidas. Cada pulsación añade una parte de taza.':
-    state.stage===3?'¡Revisa el ticket! Usa la caja para calcular el resultado correcto.':
-    '¡Has llegado muy lejos! Ahora combina lo que aprendiste en cuatro retos VIP.';
-  const students=['Integrante 1','Integrante 2','Integrante 3'];
-  const offset=state.stage%3;
-  $('team-roles').innerHTML='<b>👥 Roles rotativos · etapa '+(state.stage===4?'VIP':state.stage+1)+'</b>'+
-    '<span>👨‍🍳 Chef: '+students[offset]+'</span>'+
-    '<span>📖 Lector del pedido: '+students[(offset+1)%3]+'</span>'+
-    '<span>✅ Verificador: '+students[(offset+2)%3]+'</span>';
+  $('competence-text').textContent=SHORT_GOALS[state.stage];
+  const feedback=state.feedback;
+  $('coach-name').textContent=feedback?.kind==='success'?'¡Muy bien, pizzero!':feedback?.kind==='error'?'¡Tú puedes!':feedback?.kind==='hint'?'¡Yo te ayudo!':'¡Vamos, pizzero!';
+  $('coach-speech').textContent=feedback?.kind==='success'?'¡Excelente trabajo! Ganaste una tarjeta. ¡Vamos al siguiente pedido!':
+    feedback?.kind==='error'?'No pasa nada. ¡Respira, observa y vuelve a intentarlo!':
+    feedback?.kind==='hint'?'Mira la pista y prueba de nuevo. ¡Estoy contigo!':GUIDE_MESSAGES[state.stage];
 }
 function escName(name){return name?.trim()?name.trim():'Chef invitado';}
 function formatTime(sec){const m=Math.floor(Math.max(sec,0)/60),s=Math.max(sec,0)%60;return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');}
@@ -342,10 +388,11 @@ function handleTaskCheck(){
   if(given===task.target){
     playNote(true);
     state.successes++;
+    state.cards++;
     const evidence={stage:state.stage,level:getLevel().title,task:state.task+1,type:task.type,competence:getLevel().competency,description:task.prompt.replace(/<[^>]+>/g,''),answer:task.math,attempts:state.mistakes+1,hints:state.hintsTask,finished:new Date().toISOString()};
     state.log.push(evidence);
     state.awaitingNext=true;
-    state.feedback={kind:'success',title:'🎉 ¡Pedido correcto, chef!',text:task.why+' Pi-zzaman y su equipo te felicitan. Puedes continuar.'};
+    state.feedback={kind:'success',title:'🎉 ¡Pedido correcto! +1 tarjeta',text:task.why+' Pi-zzagirl te felicita. ¡Sigue así!'};
     save();render();confetti();
     return;
   }
@@ -401,18 +448,17 @@ function completeLevel(){
   const lvl=getLevel(),already=state.completed.includes(state.stage);
   if(!already){
     state.completed.push(state.stage);
-    state.cards++;
     if(state.stage===1)state.alarm+=2;
     if(state.stage===2)state.calculator+=2;
   }
-  save();playNote(true);confetti();
+  save();playSound('level');confetti();
   showModal({emoji:state.stage===4?'🏆':'🎉',eyebrow:'¡NIVEL SUPERADO!',
     title:state.stage===4?'¡La crítica nos dio una estrella!':'¡Excelente trabajo!',
     description:state.stage===4?'Completaste el banquete con todas las competencias de fracciones. ¡Francisco’s vuelve a brillar!':'Has resuelto los cuatro pedidos de '+lvl.short.toLowerCase()+'. Tu fama aumenta y te espera una nueva misión.',
     details:'<p><b>🎓 Aprendizaje demostrado:</b> '+esc(lvl.competency)+'</p><p><b>🎁 Recompensa:</b> '+esc(lvl.reward)+'</p><p><b>📊 Evidencia:</b> '+lvl.tasks.length+' retos prácticos completados. Tu progreso queda guardado.</p>',
     button:state.stage===4?'Ver mi reconocimiento':'Continuar al siguiente nivel',
     callback:()=>{
-      if(state.stage===4){state.stage=5;state.page='ending';save();render();return;}
+      if(state.stage===4){state.stage=5;state.page='ending';save();render();playSound('victory');confetti();return;}
       state.stage++;state.task=0;resetTask();state.seconds=getLevel().seconds;state.timeEnded=false;
       state.page='play';save();render();showIntro();
     }
@@ -446,11 +492,14 @@ function getSummary(){
 }
 function renderEnding(){
   const player=esc(escName(state.player));
-  $('ending-story').textContent='¡Felicitaciones, '+escName(state.player)+'! Lograste representar porciones, comparar bebidas, calcular ingredientes y repartir cuentas. Pi-zzaman, Pi-zzagirl y el profesor celebran contigo.';
-  $('ending-stats').innerHTML=getSummary().map(([name,n])=>'<div><b>'+n+'</b>'+esc(name)+'</div>').join('');
-  $('certificate').innerHTML='<div>📜 CERTIFICADO DE LA PIZZERÍA FRANCISCO’S</div><h2>Maestro de las fracciones</h2><div class="honoree">'+player+'</div><p>Por superar los cuatro niveles y la Misión VIP aplicando fracciones en situaciones cotidianas.</p><small>🏆 Aprendiz → Pizzero → Especialista → Maestro · '+new Date().toLocaleDateString('es-CO')+'</small>';
+  $('ending-story').textContent='¡Felicitaciones, '+escName(state.player)+'! Atendiste todos los pedidos. ¡Pi-zzagirl, Pi-zzaman y el profesor celebran tu esfuerzo!';
+  $('ending-stats').innerHTML=[
+    ['🎴 Tarjetas',state.cards],['💰 Propinas simbólicas',money(getSymbolicTips())],['📚 Retos superados',state.log.length]
+  ].map(([name,n])=>'<div><b>'+esc(n)+'</b>'+esc(name)+'</div>').join('');
+  $('certificate').innerHTML='<div>🏆 RECONOCIMIENTO DE FRANCISCO’S</div><h2>Maestro Pizzero de Fracciones</h2><div class="honoree">'+player+'</div><p>Por representar, comparar y aplicar fracciones en pedidos, recetas y situaciones de compra.</p><small>«Aprender también es volver a intentarlo» · '+new Date().toLocaleDateString('es-CO')+'</small>';
   updateDecor();
 }
+function getSymbolicTips(){return state.log.length*2000+state.completed.length*1000;}
 function updateDecor(){
   document.querySelectorAll('[data-decor]').forEach(btn=>btn.classList.toggle('selected',btn.dataset.decor===state.decor));
   const scene=$('decor-scene');scene.className='decor-scene '+state.decor;
@@ -472,6 +521,17 @@ function buildPrintArea(){
     '<p><b>Retroalimentación y recuperación:</b> El juego explica cada respuesta y activa el Curso de pizzero tras agotar los intentos. Los avances anteriores se conservan.</p>'+
     '<p><b>Nota:</b> Los datos se guardan únicamente en el navegador de este dispositivo. El estudiante puede enviar este informe manualmente por Classroom o AVA.</p>';
 }
+function buildPrintCertificate(){
+  const player=esc(escName(state.player));
+  $('print-area').innerHTML='<div class="print-ceremony"><p>🏆 CEREMONIA DE RECONOCIMIENTO 🏆</p>'+ 
+    '<h1>¡Francisco’s tiene un Maestro Pizzero!</h1>'+
+    '<p>¡Atendiste todos los pedidos y demostraste lo que sabes de las fracciones!</p>'+
+    '<img src="medidor.png" alt="Medidor de fama de Francisco’s: Aprendiz, Pizzero, Especialista, Maestro">'+
+    '<div class="print-rewards"><span>🎴 <b>'+state.cards+'</b> tarjetas</span><span>💰 <b>'+money(getSymbolicTips())+'</b> propinas simbólicas</span><span>📚 <b>'+state.log.length+'</b> retos</span></div>'+
+    '<div class="print-diploma"><div>RECONOCIMIENTO DE FRANCISCO’S</div><strong>Maestro Pizzero de Fracciones</strong><div class="student">'+player+'</div>'+
+    '<p>Por representar, comparar y aplicar fracciones en pedidos, recetas y situaciones de compra.</p><small>«Aprender también es volver a intentarlo» · '+new Date().toLocaleDateString('es-CO')+'</small></div>'+ 
+    '<p>🎉 ¡La pizzería celebra tu esfuerzo!</p><small>Las propinas simbólicas son puntos del juego, no dinero real.</small></div>';
+}
 function downloadCSV(){
   if(!state || !state.log.length){showToast('Resuelve al menos un pedido para generar un informe.');return;}
   const safeCSV=value=>{
@@ -489,6 +549,10 @@ function downloadCSV(){
 function printReport(){
   if(!state?.log.length)return;
   buildPrintArea();window.print();
+}
+function printCertificate(){
+  if(!state || state.stage!==5)return;
+  buildPrintCertificate();window.print();
 }
 function startNewGame(){
   if(state && state.log.length && !confirm('Ya tienes una partida guardada. ¿Deseas comenzar otra? Esto reemplazará el avance guardado en este navegador.'))return;
@@ -574,13 +638,18 @@ $('check-btn').addEventListener('click',handleTaskCheck);
 $('hint-btn').addEventListener('click',giveHint);
 $('preview-btn').addEventListener('click',tryAlarm);
 $('calc-btn').addEventListener('click',useCalculator);
+$('details-btn').addEventListener('click',openLevelInfo);
 $('modal-btn').addEventListener('click',closeModal);
 $('audio-btn').addEventListener('click',()=>{
-  soundOn=!soundOn;$('audio-btn').textContent=soundOn?'🔊 Sonido':'🔇 Sonido';
-  $('audio-btn').setAttribute('aria-pressed',String(soundOn));if(soundOn)playNote();
+  soundOn=!soundOn;saveAudio();updateAudioUI();if(soundOn)playSound('hint');
 });
+$('volume-slider').addEventListener('input',event=>{
+  volumePct=clamp(Number(event.target.value)||0,0,100);
+  saveAudio();updateAudioUI();
+});
+$('volume-slider').addEventListener('change',()=>{if(soundOn)playSound('hint');});
 $('report-btn').addEventListener('click',printReport);
-$('print-btn').addEventListener('click',printReport);
+$('print-btn').addEventListener('click',printCertificate);
 $('csv-btn').addEventListener('click',downloadCSV);
 $('restart-btn').addEventListener('click',restart);
 
@@ -596,4 +665,5 @@ setInterval(()=>{
 
 /* Iniciamos en la portada para que el estudiante decida continuar o comenzar. */
 if(state){state.returnPage=state.page==='landing'?(state.returnPage||'play'):state.page;state.page='landing';}
+updateAudioUI();
 render();

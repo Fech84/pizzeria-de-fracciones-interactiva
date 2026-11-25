@@ -15,7 +15,12 @@
     <div class="shell topbar-inner">
       <div class="identity"><span class="logo">🍕</span><div><strong>Francisco's</strong><small>Pizzería de fracciones · Pi-zzaman al rescate</small></div></div>
       <div class="top-actions">
-        <button type="button" id="audio-btn" class="header-button" aria-pressed="false">🔇 Sonido</button>
+        <div class="audio-controls">
+          <button type="button" id="audio-btn" class="header-button" aria-pressed="true">🔊 Sonido</button>
+          <label for="volume-slider" class="sr">Volumen del videojuego</label>
+          <input id="volume-slider" type="range" min="0" max="100" value="75" step="5" aria-label="Volumen del juego">
+          <span id="volume-readout" aria-live="polite">75%</span>
+        </div>
         <button type="button" id="report-btn" class="header-button" disabled>📋 Informe</button>
         <button type="button" id="home-btn" class="header-button" hidden>⌂ Inicio</button>
       </div>
@@ -73,14 +78,12 @@
         <div class="canopy" aria-hidden="true"></div>
         <div class="restaurant-grid">
           <aside class="coach card">
-            <div id="character-portrait" class="character-portrait" role="img" aria-label="Personajes originales en 2D de la pizzería: Pi-zzaman, Pi-zzagirl y el profesor."></div>
-            <div class="eyebrow">TU EQUIPO</div>
-            <h2 id="coach-name">Pi-zzaman</h2>
+            <div id="character-portrait" class="character-portrait" role="img" aria-label="Pi-zzagirl, la niña guía de Francisco's, con su gorro blanco y delantal verde."></div>
+            <div class="eyebrow">MENSAJE DE PI-ZZAGIRL</div>
+            <h2 id="coach-name">¡Vamos, pizzero!</h2>
             <div id="coach-speech" class="speech" aria-live="polite"></div>
-            <div class="competence-card"><b>🎓 Lo que aprenderás</b><p id="competence-text"></p></div>
-            <div class="resource-card"><b>🧩 Recurso que usarás</b><p id="resource-text"></p></div>
-            <div id="team-roles" class="team-roles"></div>
-            <small class="coop">👥 Si juegan en grupo, los tres integrantes cambian de función al finalizar cada nivel.</small>
+            <div class="competence-card"><b>🎯 Tu misión</b><p id="competence-text"></p></div>
+            <button type="button" id="details-btn" class="level-info-btn">ⓘ Información del nivel</button>
           </aside>
           <article class="ticket card" aria-labelledby="level-title">
             <div class="ticket-head"><div><div id="order-indicator" class="eyebrow">PEDIDO 1 DE 4</div><h2 id="level-title">Pedidos de pizza</h2><p class="topic" id="topic"></p></div><div class="clock-stamp" id="clock-stamp" aria-hidden="true">🕒</div></div>
@@ -108,10 +111,11 @@
     </section>
 
     <section id="ending" class="card ending hidden">
-      <div class="ending-star">🏆</div><div class="eyebrow">¡MISIÓN COMPLETADA!</div><h1>Francisco's está a salvo</h1>
+      <div class="ending-star">🏆 ✨ 🍕</div><div class="eyebrow">CEREMONIA DE RECONOCIMIENTO</div><h1>¡Francisco's tiene un Maestro Pizzero!</h1>
       <p id="ending-story"></p>
       <img class="ending-image" src="medidor.png" alt="Evolución del nivel Aprendiz al rango Maestro de Francisco's.">
-      <div id="ending-stats" class="ending-stats"></div>
+      <div id="ending-stats" class="ending-stats" aria-label="Recompensas ganadas"></div>
+      <p class="quiet">Las propinas son premios simbólicos del videojuego, no dinero real.</p>
       <h2>Personaliza tu pizzería</h2><div id="decor-options" class="decor-options"><button type="button" data-decor="clasica">🍕 Clásica</button><button type="button" data-decor="jardin">🌿 Jardín</button><button type="button" data-decor="fiesta">🎉 Fiesta</button></div>
       <div id="decor-scene" class="decor-scene"></div>
       <div class="certificate" id="certificate"></div>
