@@ -27,3 +27,108 @@ main{padding-top:23px;padding-bottom:30px}.card{background:#fffbf5;border:2px so
 @media(max-width:620px){.shell{padding:0 10px}.topbar-inner{min-height:74px;align-items:flex-start;padding-top:9px;padding-bottom:9px}.identity .logo{font-size:28px}.identity strong{font-size:22px}.identity small{font-size:10px}.header-button{font-size:12px;padding:6px}.top-actions{max-width:135px}.welcome-box{padding:17px}.dashboard{padding:12px}.stats{grid-template-columns:repeat(3,1fr)}.stats b{font-size:15px}.journey button{font-size:11px;padding:7px 9px}.restaurant{padding:31px 7px 9px}.coach{grid-template-columns:95px 1fr;padding:10px}.character-portrait{height:96px}.coach h2{font-size:19px}.speech{font-size:12px;min-height:0;padding:9px}.ticket{padding:11px}.ticket-head h2{font-size:22px}.interaction{padding:8px}.order-prompt{font-size:15px}.recipe-station{grid-template-columns:1fr}.ingredient-icon{font-size:46px}.counter output{font-size:23px}.course-choices{grid-template-columns:1fr}.modal{padding:16px}.intro-strip small{font-size:11px}.glass-container{width:86px;height:166px}.ending{padding:14px}.ending-image{max-height:230px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 @media print{@page{size:A4;margin:20mm}body{background:white;color:black}body>*:not(.print-area){display:none!important}.print-area{display:block!important;font-family:Arial,sans-serif}.print-area h1{color:#ad3429}.print-area h2{margin-top:28px}.print-area table{width:100%;border-collapse:collapse}.print-area th,.print-area td{border:1px solid #888;padding:8px;font-size:12px;text-align:left}.print-area .print-badge{border:5px double #bd9a57;padding:18px;text-align:center;margin:18px 0}.print-area .print-badge strong{font-size:23px;color:#a5322d}}
+
+/* Versión 3.2: retratos en alta definición sin alterar el recorrido del juego. */
+.restaurant-grid .coach #character-portrait{
+  background-image:url('pizzagirl_hd.png');
+  background-size:cover;
+  background-position:center center;
+  background-repeat:no-repeat;
+}
+.feedback.with-teacher{padding:11px 13px}
+.teacher-tip{display:flex;align-items:center;gap:14px}
+.teacher-tip img{
+  display:block;flex:0 0 88px;width:88px;height:88px;
+  object-fit:cover;object-position:center 28%;
+  border:2px solid #e4b66c;border-radius:16px;
+  background:#fff9ee;box-shadow:0 3px 0 #dbbb7a44;
+}
+.teacher-tip-text{min-width:0;flex:1}
+.teacher-tip-text strong{margin-bottom:4px}
+@media(max-width:620px){.teacher-tip{gap:9px}.teacher-tip img{flex-basis:72px;width:72px;height:72px}.feedback.with-teacher{font-size:14px}}
+
+/* Versión 3.3: la elección final decora el reconocimiento, no la pantalla de juego. */
+.decor-options button{transition:background .2s,border-color .2s,transform .2s}
+.decor-options button.selected{box-shadow:0 0 0 3px #fff9ed,0 0 0 5px currentColor;transform:translateY(-2px)}
+.decor-options [data-decor="clasica"].selected{background:#ffe3af;border-color:#c0782f;color:#854410}
+.decor-options [data-decor="jardin"].selected{background:#dcf3d0;border-color:#5da461;color:#275e36}
+.decor-options [data-decor="fiesta"].selected{background:#f5dcff;border-color:#ad69bc;color:#713084}
+.ending .certificate{
+  position:relative;overflow:hidden;isolation:isolate;
+  border-radius:24px;padding:22px 45px 25px;
+  transition:background .25s,border-color .25s,box-shadow .25s;
+}
+.certificate-garland{
+  max-width:440px;margin:0 auto 13px;padding:9px 15px;border-radius:40px;
+  font-size:24px;letter-spacing:.12em;line-height:1.4;
+  background:#fff9eabd;border:1px solid #e8bf8569;
+}
+.ending .certificate .certificate-label{font-size:13px;font-weight:900;letter-spacing:.035em}
+.ending .certificate .honoree{font-size:clamp(27px,3vw,35px);margin:9px 0}
+.ending .certificate p{line-height:1.5;margin:13px auto;max-width:580px}
+.certificate-motto{font-size:15px;font-weight:900;margin-top:15px;letter-spacing:.025em}
+.certificate.decor-clasica{
+  border-color:#d49a45;
+  background:radial-gradient(circle at 10% 5%,#ffe5b77d 0 7%,transparent 8%),
+    radial-gradient(circle at 94% 91%,#ffe8c18c 0 9%,transparent 10%),
+    linear-gradient(130deg,#fffdf4,#fff0d8 62%,#fff9ee);
+  box-shadow:inset 0 0 0 3px #fff5dc,0 7px 20px #a76b2740;
+}
+.certificate.decor-clasica .certificate-motto{color:#a25b22}
+.certificate.decor-jardin{
+  border-color:#63a36a;
+  background:radial-gradient(circle at 8% 88%,#bde5b48c 0 11%,transparent 12%),
+    radial-gradient(circle at 95% 10%,#d7f1c6a3 0 12%,transparent 13%),
+    linear-gradient(130deg,#f8fff3,#e5f6d9 55%,#fffdf5);
+  box-shadow:inset 0 0 0 3px #f8fff0,0 7px 20px #4a854328;
+}
+.certificate.decor-jardin h2,.certificate.decor-jardin .certificate-label{color:#357444}
+.certificate.decor-jardin .honoree,.certificate.decor-jardin .certificate-motto{color:#267a43}
+.certificate.decor-fiesta{
+  border-color:#af6ac9;
+  background:radial-gradient(circle at 10% 12%,#ffbbe3a6 0 8%,transparent 9%),
+    radial-gradient(circle at 94% 87%,#b0e2ff8a 0 12%,transparent 13%),
+    linear-gradient(135deg,#fff1fc,#f2e9ff 55%,#f7fbff);
+  box-shadow:inset 0 0 0 3px #fff6ff,0 7px 20px #724dbd2d;
+}
+.certificate.decor-fiesta h2,.certificate.decor-fiesta .certificate-label{color:#8b3da9}
+.certificate.decor-fiesta .honoree,.certificate.decor-fiesta .certificate-motto{color:#a73683}
+.certificate.decor-clasica::before,.certificate.decor-jardin::before,.certificate.decor-fiesta::before,
+.certificate.decor-clasica::after,.certificate.decor-jardin::after,.certificate.decor-fiesta::after{
+  position:absolute;font-size:27px;opacity:.78;pointer-events:none;z-index:-1;
+}
+.certificate.decor-clasica::before{content:'🍅';bottom:14px;left:13px}
+.certificate.decor-clasica::after{content:'🧀';bottom:14px;right:13px}
+.certificate.decor-jardin::before{content:'🌷';bottom:14px;left:13px}
+.certificate.decor-jardin::after{content:'🌻';bottom:14px;right:13px}
+.certificate.decor-fiesta::before{content:'🎈';bottom:14px;left:13px}
+.certificate.decor-fiesta::after{content:'🎊';bottom:14px;right:13px}
+@media(max-width:620px){
+  .ending .certificate{padding:15px 25px 19px}
+  .certificate-garland{font-size:17px;letter-spacing:0;padding:7px 5px}
+  .certificate.decor-clasica::before,.certificate.decor-jardin::before,.certificate.decor-fiesta::before,
+  .certificate.decor-clasica::after,.certificate.decor-jardin::after,.certificate.decor-fiesta::after{font-size:20px}
+}
+/* También se aplica al documento impreso o guardado como PDF. */
+@media print{
+  .print-area .print-ceremony img{width:100%;max-width:140mm;height:auto;max-height:80mm;object-fit:contain}
+  .print-area .print-ceremony h1{margin:7px 0;font-size:24px}
+  .print-area .print-ceremony>p{margin:7px 0}
+  .print-area .print-rewards{margin:7px auto;gap:6px}
+  .print-area .print-rewards span{padding:6px 11px;font-size:12px}
+  .print-area .print-diploma{
+    margin:8px auto 0;padding:13px 25px;border-width:5px;
+    max-width:168mm;page-break-inside:avoid;break-inside:avoid;
+    print-color-adjust:exact;-webkit-print-color-adjust:exact;
+  }
+  .print-area .print-diploma strong{margin:5px 0;font-size:23px}
+  .print-area .print-diploma p{margin:6px auto}
+  .print-area .print-diploma .certificate-garland{font-size:18px;padding:3px 6px;margin:0 auto 8px}
+  .print-area .print-diploma .certificate-motto{margin-top:8px;font-size:13px}
+  .print-area .print-diploma.decor-clasica{border-color:#c88e36;background:#fff1d6}
+  .print-area .print-diploma.decor-clasica .certificate-motto{color:#a25b22}
+  .print-area .print-diploma.decor-jardin{border-color:#519d65;background:#eff9e8}
+  .print-area .print-diploma.decor-jardin strong,.print-area .print-diploma.decor-jardin .certificate-motto{color:#33754c}
+  .print-area .print-diploma.decor-fiesta{border-color:#a66bc4;background:#f7edff}
+  .print-area .print-diploma.decor-fiesta strong,.print-area .print-diploma.decor-fiesta .certificate-motto{color:#973f9f}
+}

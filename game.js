@@ -366,8 +366,11 @@ function renderInteraction(){
 function renderFeedback(){
   const el=$('feedback');
   if(!state.feedback){el.className='feedback hidden';el.innerHTML='';return;}
-  el.className='feedback '+state.feedback.kind;
-  el.innerHTML='<strong>'+esc(state.feedback.title)+'</strong>'+esc(state.feedback.text);
+  const withTeacher=state.feedback.kind==='hint' && state.feedback.teacher===true;
+  el.className='feedback '+state.feedback.kind+(withTeacher?' with-teacher':'');
+  const message='<strong>'+esc(state.feedback.title)+'</strong><span>'+esc(state.feedback.text)+'</span>';
+  el.innerHTML=withTeacher?
+    '<div class="teacher-tip"><img src="profesor_hd.png" alt="Profesor de Francisco’s" width="90" height="90"><div class="teacher-tip-text">'+message+'</div></div>':message;
 }
 
 function setInteractionValue(value,rerender=true){
@@ -419,7 +422,7 @@ function giveHint(){
   const task=getTask();
   const text=task.hints[Math.min(state.hintsTask,task.hints.length-1)];
   state.hintsTask++;state.hints++;
-  state.feedback={kind:'hint',title:'💡 Consejo del profesor',text};
+  state.feedback={kind:'hint',title:'💡 Consejo del profesor',text,teacher:true};
   save();renderDashboard();renderTask();
 }
 function tryAlarm(){
@@ -490,20 +493,40 @@ function getSummary(){
     ['Pistas utilizadas',state.hints],['Cursos de pizzero',state.courseUses]
   ];
 }
+const RECOGNITION_STYLES={
+  clasica:{name:'Clásica',garland:'🍕 · 🍅 · 🧀 · 🍕',motto:'¡El sabor del esfuerzo!'},
+  jardin:{name:'Jardín',garland:'🌿 · 🌻 · 🌼 · 🍃',motto:'¡Tus conocimientos florecieron!'},
+  fiesta:{name:'Fiesta',garland:'🎉 · 🎈 · ⭐ · 🎊',motto:'¡Hoy celebramos todo lo que aprendiste!'}
+};
+function recognitionStyle(){return RECOGNITION_STYLES[state.decor]?state.decor:'clasica';}
 function renderEnding(){
   const player=esc(escName(state.player));
   $('ending-story').textContent='¡Felicitaciones, '+escName(state.player)+'! Atendiste todos los pedidos. ¡Pi-zzagirl, Pi-zzaman y el profesor celebran tu esfuerzo!';
   $('ending-stats').innerHTML=[
     ['🎴 Tarjetas',state.cards],['💰 Propinas simbólicas',money(getSymbolicTips())],['📚 Retos superados',state.log.length]
   ].map(([name,n])=>'<div><b>'+esc(n)+'</b>'+esc(name)+'</div>').join('');
-  $('certificate').innerHTML='<div>🏆 RECONOCIMIENTO DE FRANCISCO’S</div><h2>Maestro Pizzero de Fracciones</h2><div class="honoree">'+player+'</div><p>Por representar, comparar y aplicar fracciones en pedidos, recetas y situaciones de compra.</p><small>«Aprender también es volver a intentarlo» · '+new Date().toLocaleDateString('es-CO')+'</small>';
+  $('certificate').innerHTML='<div class="certificate-garland" aria-hidden="true"></div>'+ 
+    '<div class="certificate-label">🏆 RECONOCIMIENTO DE FRANCISCO’S</div><h2>Maestro Pizzero de Fracciones</h2><div class="honoree">'+player+'</div>'+ 
+    '<p>Por representar, comparar y aplicar fracciones en pedidos, recetas y situaciones de compra.</p>'+ 
+    '<small>«Aprender también es volver a intentarlo» · '+new Date().toLocaleDateString('es-CO')+'</small>'+ 
+    '<div class="certificate-motto"></div>';
   updateDecor();
 }
 function getSymbolicTips(){return state.log.length*2000+state.completed.length*1000;}
 function updateDecor(){
-  document.querySelectorAll('[data-decor]').forEach(btn=>btn.classList.toggle('selected',btn.dataset.decor===state.decor));
-  const scene=$('decor-scene');scene.className='decor-scene '+state.decor;
-  scene.textContent=state.decor==='jardin'?'🌿 🍕 🪴 🌱 🧑‍🍳 🍹 🌿':state.decor==='fiesta'?'🎉 🍕 🎊 🧑‍🍳 🍰 🎈 🎉':'🍕 🧑‍🍳 🍅 🧀 🥤 🍕';
+  const decor=recognitionStyle(),style=RECOGNITION_STYLES[decor];
+  document.querySelectorAll('[data-decor]').forEach(btn=>{
+    const selected=btn.dataset.decor===decor;
+    btn.classList.toggle('selected',selected);
+    btn.setAttribute('aria-pressed',String(selected));
+  });
+  const scene=$('decor-scene');scene.className='decor-scene '+decor;
+  scene.textContent=decor==='jardin'?'🌿 🍕 🪴 🌱 🧑‍🍳 🍹 🌿':decor==='fiesta'?'🎉 🍕 🎊 🧑‍🍳 🍰 🎈 🎉':'🍕 🧑‍🍳 🍅 🧀 🥤 🍕';
+  const certificate=$('certificate');certificate.className='certificate decor-'+decor;
+  const garland=certificate.querySelector('.certificate-garland');
+  const motto=certificate.querySelector('.certificate-motto');
+  if(garland)garland.textContent=style.garland;
+  if(motto)motto.textContent=style.motto;
 }
 
 function buildPrintArea(){
@@ -523,13 +546,16 @@ function buildPrintArea(){
 }
 function buildPrintCertificate(){
   const player=esc(escName(state.player));
+  const decor=recognitionStyle(),style=RECOGNITION_STYLES[decor];
   $('print-area').innerHTML='<div class="print-ceremony"><p>🏆 CEREMONIA DE RECONOCIMIENTO 🏆</p>'+ 
     '<h1>¡Francisco’s tiene un Maestro Pizzero!</h1>'+
     '<p>¡Atendiste todos los pedidos y demostraste lo que sabes de las fracciones!</p>'+
     '<img src="medidor.png" alt="Medidor de fama de Francisco’s: Aprendiz, Pizzero, Especialista, Maestro">'+
     '<div class="print-rewards"><span>🎴 <b>'+state.cards+'</b> tarjetas</span><span>💰 <b>'+money(getSymbolicTips())+'</b> propinas simbólicas</span><span>📚 <b>'+state.log.length+'</b> retos</span></div>'+
-    '<div class="print-diploma"><div>RECONOCIMIENTO DE FRANCISCO’S</div><strong>Maestro Pizzero de Fracciones</strong><div class="student">'+player+'</div>'+
-    '<p>Por representar, comparar y aplicar fracciones en pedidos, recetas y situaciones de compra.</p><small>«Aprender también es volver a intentarlo» · '+new Date().toLocaleDateString('es-CO')+'</small></div>'+ 
+    '<div class="print-diploma decor-'+decor+'"><div class="certificate-garland">'+style.garland+'</div>'+ 
+    '<div>RECONOCIMIENTO DE FRANCISCO’S</div><strong>Maestro Pizzero de Fracciones</strong><div class="student">'+player+'</div>'+ 
+    '<p>Por representar, comparar y aplicar fracciones en pedidos, recetas y situaciones de compra.</p><small>«Aprender también es volver a intentarlo» · '+new Date().toLocaleDateString('es-CO')+'</small>'+ 
+    '<div class="certificate-motto">'+style.motto+'</div></div>'+ 
     '<p>🎉 ¡La pizzería celebra tu esfuerzo!</p><small>Las propinas simbólicas son puntos del juego, no dinero real.</small></div>';
 }
 function downloadCSV(){
