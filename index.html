@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ad3028">
+  <meta name="description" content="Pizzería de fracciones: Pi-zzaman al rescate. Videojuego educativo interactivo para aprender fracciones en sexto grado.">
+  <title>Francisco's · Pizzería de Fracciones</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="game.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Saltar al contenido</a>
+  <header class="topbar">
+    <div class="shell topbar-inner">
+      <div class="identity"><span class="logo">🍕</span><div><strong>Francisco's</strong><small>Pizzería de fracciones · Pi-zzaman al rescate</small></div></div>
+      <div class="top-actions">
+        <button type="button" id="audio-btn" class="header-button" aria-pressed="false">🔇 Sonido</button>
+        <button type="button" id="report-btn" class="header-button" disabled>📋 Informe</button>
+        <button type="button" id="home-btn" class="header-button" hidden>⌂ Inicio</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="shell">
+    <section id="landing" class="landing">
+      <div class="hero-image"><img src="portada.png" alt="Portada ilustrada de la Pizzería de Fracciones, con Pi-zzaman y una pizzería virtual de estilo videojuego 2D."></div>
+      <div class="welcome-box">
+        <div class="eyebrow">AVENTURA MATEMÁTICA · GRADO SEXTO</div>
+        <h1>¡La pizzería te necesita!</h1>
+        <p>Ayuda a Pi-zzaman y a Pi-zzagirl a salvar Francisco's. Prepara pedidos <strong>manipulando porciones, llenando vasos, calculando recetas y usando la caja registradora</strong>.</p>
+        <label class="player-field" for="player-name">Nombre del chef <span>(opcional)</span>
+          <input id="player-name" type="text" maxlength="35" placeholder="¿Cómo te llamas?" autocomplete="off">
+        </label>
+        <div class="mode-box" role="group" aria-label="Modalidad de juego">
+          <label><input type="radio" name="mode" value="reto" checked> ⏱️ Modo reto: con reloj orientativo</label>
+          <label><input type="radio" name="mode" value="tranquilo"> 🌿 Modo tranquilo: sin reloj</label>
+        </div>
+        <div class="welcome-actions">
+          <button class="btn primary" id="start-btn" type="button">▶ Comenzar aventura</button>
+          <button class="btn secondary" id="resume-btn" type="button" hidden>↪ Continuar partida</button>
+        </div>
+        <p class="quiet">Puedes equivocarte y volver a practicar sin perder los niveles superados. Tu avance se guarda en este navegador.</p>
+      </div>
+      <div class="intro-strip">
+        <div><span>🍕</span><b>Porciones</b><small>Representar fracciones</small></div>
+        <div><span>🥤</span><b>Bebidas</b><small>Comparar y equivaler</small></div>
+        <div><span>🧀</span><b>Recetas</b><small>Operar con fracciones</small></div>
+        <div><span>🧾</span><b>Caja</b><small>Repartos y descuentos</small></div>
+      </div>
+    </section>
+
+    <section id="game" class="hidden" aria-labelledby="game-title">
+      <div class="dashboard card">
+        <div class="dashboard-top">
+          <div><div class="eyebrow">MISIÓN DE FRANCISCO'S</div><h2 id="game-title">Medidor de fama</h2></div>
+          <div id="player-chip" class="player-chip"></div>
+        </div>
+        <div class="stats">
+          <div><small>Etapa</small><b id="stat-level">1 de 4</b></div>
+          <div><small>Fama</small><b id="stat-rank">Aprendiz</b></div>
+          <div><small>Tarjetas</small><b id="stat-cards">0</b></div>
+          <div><small>Intentos</small><b id="stat-attempts">3</b></div>
+          <div><small>Reloj</small><b id="stat-time">05:00</b></div>
+        </div>
+        <div class="fame-label"><strong>🌟 Fama de Francisco's</strong><span id="fame-percent">0%</span></div>
+        <div class="fame-track" role="progressbar" aria-label="Progreso de fama" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="fame-track"><div id="fame-fill"></div></div>
+        <div class="rank-steps"><span>Aprendiz</span><span>Pizzero</span><span>Especialista</span><span>Maestro</span></div>
+        <div id="inventory" class="inventory" aria-live="polite"></div>
+      </div>
+      <nav class="journey" id="journey" aria-label="Recorrido de niveles"></nav>
+      <section class="restaurant" aria-labelledby="level-title">
+        <div class="canopy" aria-hidden="true"></div>
+        <div class="restaurant-grid">
+          <aside class="coach card">
+            <div id="character-portrait" class="character-portrait" role="img" aria-label="Personajes originales en 2D de la pizzería: Pi-zzaman, Pi-zzagirl y el profesor."></div>
+            <div class="eyebrow">TU EQUIPO</div>
+            <h2 id="coach-name">Pi-zzaman</h2>
+            <div id="coach-speech" class="speech" aria-live="polite"></div>
+            <div class="competence-card"><b>🎓 Lo que aprenderás</b><p id="competence-text"></p></div>
+            <div class="resource-card"><b>🧩 Recurso que usarás</b><p id="resource-text"></p></div>
+            <div id="team-roles" class="team-roles"></div>
+            <small class="coop">👥 Si juegan en grupo, los tres integrantes cambian de función al finalizar cada nivel.</small>
+          </aside>
+          <article class="ticket card" aria-labelledby="level-title">
+            <div class="ticket-head"><div><div id="order-indicator" class="eyebrow">PEDIDO 1 DE 4</div><h2 id="level-title">Pedidos de pizza</h2><p class="topic" id="topic"></p></div><div class="clock-stamp" id="clock-stamp" aria-hidden="true">🕒</div></div>
+            <div id="order-prompt" class="order-prompt"></div>
+            <div id="interaction" class="interaction" aria-live="polite"></div>
+            <div class="live-value" id="live-value"></div>
+            <div class="action-row">
+              <button type="button" class="btn primary" id="check-btn">✓ Entregar pedido</button>
+              <button type="button" class="btn subtle" id="hint-btn">💡 Pista</button>
+              <button type="button" class="btn subtle" id="preview-btn" hidden>🔔 Alarma</button>
+              <button type="button" class="btn subtle" id="calc-btn" hidden>🧮 Calculadora</button>
+            </div>
+            <div id="feedback" class="feedback hidden" role="status"></div>
+            <div id="task-progress" class="task-progress" aria-label="Pedidos resueltos"></div>
+          </article>
+        </div>
+      </section>
+    </section>
+
+    <section id="course" class="card course hidden" aria-labelledby="course-title">
+      <div class="course-icon">🎓</div><div class="eyebrow">RUTA DE RECUPERACIÓN</div><h2 id="course-title">Curso de pizzero</h2>
+      <p id="course-intro"></p><div id="course-example" class="course-example"></div>
+      <div id="course-exercise" class="course-exercise"></div>
+      <p id="course-feedback" class="course-feedback" role="status"></p>
+    </section>
+
+    <section id="ending" class="card ending hidden">
+      <div class="ending-star">🏆</div><div class="eyebrow">¡MISIÓN COMPLETADA!</div><h1>Francisco's está a salvo</h1>
+      <p id="ending-story"></p>
+      <img class="ending-image" src="medidor.png" alt="Evolución del nivel Aprendiz al rango Maestro de Francisco's.">
+      <div id="ending-stats" class="ending-stats"></div>
+      <h2>Personaliza tu pizzería</h2><div id="decor-options" class="decor-options"><button type="button" data-decor="clasica">🍕 Clásica</button><button type="button" data-decor="jardin">🌿 Jardín</button><button type="button" data-decor="fiesta">🎉 Fiesta</button></div>
+      <div id="decor-scene" class="decor-scene"></div>
+      <div class="certificate" id="certificate"></div>
+      <div class="end-buttons"><button class="btn primary" type="button" id="print-btn">🖨️ Guardar reconocimiento en PDF</button><button class="btn secondary" type="button" id="csv-btn">📥 Descargar informe CSV</button><button class="btn subtle" type="button" id="restart-btn">↻ Nueva aventura</button></div>
+    </section>
+  </main>
+
+  <div id="overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal card"><span id="modal-emoji" class="modal-emoji"></span><div class="eyebrow" id="modal-eyebrow"></div><h2 id="modal-title"></h2><p id="modal-description"></p><div id="modal-details" class="modal-details"></div><button class="btn primary" type="button" id="modal-btn">Continuar</button></div></div>
+  <div id="toast" class="toast hidden" role="status"></div>
+  <div id="print-area" class="print-area" aria-hidden="true"></div>
+  <footer class="footer">Proyecto académico de e-gamificación · Sexto grado · Francisco's · No requiere registro ni comparte datos con servidores.</footer>
+</body>
+</html>
